@@ -1,0 +1,14 @@
+pip install -r requirements.txt
+. 
+pip uninstall -y torch
+pip uninstall -y torchvision
+pip uninstall -y torchaudio
+
+pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu126
+pip install torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu126
+pip install torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu126
+
+git config --global user.email "jerryf31415@gmail.com"
+git config --global user.name "jerry flynn"
+
+streamlit run ./src/app.py 
