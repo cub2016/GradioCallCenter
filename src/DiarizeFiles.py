@@ -40,3 +40,4 @@ def diarize_wav_file(file_name):
             dict['end'] = round(turn.end, 1)
 
     return speakers, tmp_file
+

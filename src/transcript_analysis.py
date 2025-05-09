@@ -13,12 +13,16 @@ template = """
  Use bullet points to describe important statements or shifts in topic.
  Preserve who said what when it's important and substitute the speaker_0 and speaker_1 
  with the speakers name if you can. Also, give a sentiment analysis for the
- conversation as it progresses.  give a sentiment score for the overall 
+ conversation as it progresses.  Finally, give a sentiment score for the overall 
  conversation.
 
  ```{text}```
 
  BULLET POINT SUMMARY:
+ 
+ SENTIMENT ANALYSIS:
+ 
+ SENTIMENT SCORE:
  """
 
 
@@ -94,8 +98,14 @@ def transcript_analysis(transcript):
     start = time.time()
     response = use_huggingface2(input)
     # response = use_openai(input)
+
     stop = time.time()
     elapsed=stop-start
     print("transcript analysis consumed " + str(elapsed))
 
-    return response
+    transcript = response[0:response.index("BULLET POINT SUMMARY:")]
+    summary = response[response.index("BULLET POINT SUMMARY:"): response.index("SENTIMENT ANALYSIS:")]
+    sentiment = response[response.index("BULLET POINT SUMMARY:"): response.index("SENTIMENT ANALYSIS:")]
+    sentiment = response[response.index("SENTIMENT ANALYSIS:"):response.index("SENTIMENT SCORE:")]
+    sentiment_score  = response[response.index("SENTIMENT SCORE:"):]
+    return transcript, summary, sentiment, sentiment_score
