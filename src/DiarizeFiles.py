@@ -1,4 +1,4 @@
-from process_audio import process_audio
+from preprocess_audio import preprocess_audio
 import time
 from pyannote.audio import Pipeline
 import torch
@@ -19,7 +19,7 @@ pipelineDiary.to(torch.device("cuda"))
 
 def diarize_wav_file(file_name):
 
-    tmp_file = process_audio(file_name)
+    tmp_file = preprocess_audio(file_name)
 
     print("DIARIZING " + file_name)
     start = time.time()

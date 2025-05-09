@@ -40,18 +40,4 @@ def main():
         pprint(summary) #.encode('utf-8').decode('utf-8'))
         print("\n\n\n\n\n\n\n")
 
-def convertMp3ToWav(file) :
-    # convert mp3 file to a wav file
-    sound = AudioSegment.from_mp3(file)
-    # sound.export(output_file, format="wav")
-
-    sample_rate = sound.frame_count() / sound.duration_seconds
-    print(sample_rate)
-    duration = sound.duration_seconds
-    sound = sound.set_frame_rate(16000)
-    sound = sound.set_channels(1)
-    outFile = os.path.splitext(file)[0]+".wav"
-    sound.export(outFile, format="wav")
-    return outFile
-
 main()

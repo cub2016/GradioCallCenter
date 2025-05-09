@@ -23,7 +23,7 @@ def normalize_audio(audio_data):
         return audio_data
     return audio_data / peak
 
-def process_audio(file):
+def preprocess_audio(file):
     audio = AudioSegment.from_file(file)
     audio = audio.set_channels(1).set_frame_rate(16000)
 
@@ -81,3 +81,16 @@ def process_audio(file):
 #    print(f"Stored filtered audio for '{file}' in database '{db_path}'.")
 #    return True
 
+def convertMp3ToWav(file) :
+    # convert mp3 file to a wav file
+    sound = AudioSegment.from_mp3(file)
+    # sound.export(output_file, format="wav")
+
+    sample_rate = sound.frame_count() / sound.duration_seconds
+    print(sample_rate)
+    duration = sound.duration_seconds
+    sound = sound.set_frame_rate(16000)
+    sound = sound.set_channels(1)
+    outFile = os.path.splitext(file)[0]+".wav"
+    sound.export(outFile, format="wav")
+    return outFile
