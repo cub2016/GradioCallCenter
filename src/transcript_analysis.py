@@ -5,16 +5,16 @@ import time
 from transformers import TorchAoConfig, AutoModelForCausalLM, AutoTokenizer
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
 
 template = """
  You are a helpful assistant that summarizes conversations.
 
  Summarize the following dialog. Identify the key points and exchanges between speakers.
  Use bullet points to describe important statements or shifts in topic.
- Preserve who said what when it's important and substitute the speaker_0 and speaker_1 
- with the speakers name if you can. Also, give a sentiment analysis for the
- conversation as it progresses.  Finally, give a sentiment score for the overall 
- conversation.
+ Preserve who said what when it's important and identify the speakers by name. Also, give a sentiment analysis for the
+ conversation as it progresses.  Finally, give a sentiment SCORE for the overall 
+ conversation. label the sections as shown.
 
  ```{text}```
 
@@ -27,16 +27,25 @@ template = """
 
 
 def use_openai(input):
-    prompt = PromptTemplate(template=template, input_variables=input)
+    prompt = PromptTemplate(template=template, input_variables=["text"])
 
-    client = OpenAI()
-    response = client.responses.create(
-        model="o3-mini-2025-01-31",
-        # model="gpt-4.1",
-        input=prompt
-    )
-    return response.output_text
+    llm = ChatOpenAI(
+        # model="gpt-3.5-turbo-instruct",
+        model="gpt-4.1",
+        temperature=0.5,
+        max_tokens=None,)
 
+    chain = prompt | llm | StrOutputParser()
+    # client = OpenAI()
+    # response = client.responses.create(
+    #     model="o3-mini-2025-01-31",
+    #     # model="gpt-4.1",
+    #     input=template    )
+    # return response.output_text
+    out = chain.invoke(input)
+
+    print(out)
+    return out
 def use_huggingface2(input):
     from transformers import pipeline
     # Define the model name
@@ -96,8 +105,8 @@ def transcript_analysis(transcript):
         input += speaker + "\n"
 
     start = time.time()
-    response = use_huggingface2(input)
-    # response = use_openai(input)
+    # response = use_huggingface2(input)
+    response = use_openai(input)
 
     stop = time.time()
     elapsed=stop-start
@@ -105,7 +114,6 @@ def transcript_analysis(transcript):
 
     transcript = response[0:response.index("BULLET POINT SUMMARY:")]
     summary = response[response.index("BULLET POINT SUMMARY:"): response.index("SENTIMENT ANALYSIS:")]
-    sentiment = response[response.index("BULLET POINT SUMMARY:"): response.index("SENTIMENT ANALYSIS:")]
     sentiment = response[response.index("SENTIMENT ANALYSIS:"):response.index("SENTIMENT SCORE:")]
     sentiment_score  = response[response.index("SENTIMENT SCORE:"):]
     return transcript, summary, sentiment, sentiment_score

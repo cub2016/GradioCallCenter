@@ -1,12 +1,13 @@
 from preprocess_audio import preprocess_audio
 import time
-from pyannote.audio import Pipeline
 import torch
 import os
+from pyannote.audio import Pipeline
 
 hugging_face = os.environ.get("HUGGING_FACE")
 
 # model_name = "pyannote/overlapped-speech-detection"
+
 model_name = "pyannote/speaker-diarization-3.1"
 # model_name = 'onnx-community/pyannote-segmentation-3.0'
 # model_name = "pyannote/segmentation-3.0"
