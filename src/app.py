@@ -1,5 +1,5 @@
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
+#from langchain_core.output_parsers import StrOutputParser
+#from langchain_core.runnables import RunnablePassthrough
 
 from DiarizeFiles import diarize_wav_file
 from segment_wave_files import segment_wave_files
@@ -21,13 +21,13 @@ from langchain.schema import HumanMessage
 if final_query_model == "openai":
     embedding_model = OpenAIEmbeddings()
     llm = ChatOpenAI()
+else:
+    embedding_model = model_name = "raaec/Meta-Llama-3.1-8B-Instruct-Summarizer"
+    llm = ChatOpenAI()
 
 def build_vectorstore(docs, path=VECTOR_DB_PATH):
     return Chroma.from_documents(collection_name="Call_Center_Data", documents=docs,
                                  embedding=embedding_model, persist_directory=path)
-
-# def save_vectorstore(vs, path=VECTOR_DB_PATH):
-#     vs.persist()
 
 def load_vectorstore(path=VECTOR_DB_PATH):
     return Chroma(persist_directory=path, embedding_function=embedding_model)
@@ -39,8 +39,8 @@ def query_knowledge_base(user_question):
 
     # vs = load_vectorstore()
 
-    embedding_model = OpenAIEmbeddings()
-    llm = ChatOpenAI(model_name="gpt-4", temperature=0.2)
+ #   embedding_model = OpenAIEmbeddings()
+ #   llm = ChatOpenAI(model_name="gpt-4", temperature=0.2)
 
     # 2. Create or load a Chroma vector store
     persist_directory = "chroma_db"
@@ -63,7 +63,7 @@ def query_knowledge_base(user_question):
 
     relevant_docs = retriever.invoke(user_question)
     context = "\n\n".join([doc.page_content for doc in relevant_docs])
-
+    print("context = " + context)
     template = """
         You are an assistant that answers questions based on the context provided.
         If you don't know the answer, say you don't know. 

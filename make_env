@@ -11,4 +11,4 @@ pip install torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu1
 git config --global user.email "jerryf31415@gmail.com"
 git config --global user.name "jerry flynn"
 
-streamlit run ./src/app.py 
+python ./src/app.py

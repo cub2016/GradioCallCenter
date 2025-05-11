@@ -6,6 +6,8 @@ from transformers import TorchAoConfig, AutoModelForCausalLM, AutoTokenizer
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
+from transformers import pipeline
+from constants import model_name, llm_analysis_model
 
 template = """
  You are a helpful assistant that summarizes conversations.
@@ -47,11 +49,7 @@ def use_openai(input):
     print(out)
     return out
 def use_huggingface2(input):
-    from transformers import pipeline
     # Define the model name
-    # model_name = "raaec/Meta-Llama-3.1-8B-Instruct-Summarizer"
-    # model_name = "meta-llama/Llama-2-7b-chat-hf"
-    model_name = "TheBloke/Llama-2-7b-Chat-GPTQ"
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     text_gen_pipeline = pipeline(
@@ -79,7 +77,7 @@ def use_huggingface2(input):
     llm = HuggingFacePipeline(
         pipeline=text_gen_pipeline,
         model_kwargs={
-            "temperature": 0.3,  # Lower = more focused and factual
+            "temperature": 0.5,  # Lower = more focused and factual
             "top_k": 50,  # Limits selection to top 50 tokens by probability
             "top_p": 0.85,  # Cumulative probability sampling
             "repetition_penalty": 1.2,  # Penalizes repeated phrases
@@ -98,15 +96,15 @@ def use_huggingface2(input):
 
 def transcript_analysis(transcript):
     results = []
-    #print(os.environ['OPENAI_API_KEY'])
-
     input=""
     for speaker in transcript:
         input += speaker + "\n"
 
     start = time.time()
-    # response = use_huggingface2(input)
-    response = use_openai(input)
+    if(llm_analysis_model == "openai"):
+        response = use_openai(input)
+    elif llm_analysis_model == "hugging_face":
+        response = use_huggingface2(input) 
 
     stop = time.time()
     elapsed=stop-start

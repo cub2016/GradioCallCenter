@@ -1,13 +1,10 @@
 import os
-
+from constants import transcribe_model
 import whisper
 import time
 def transcribe_segments(speakers):
     print(f"Whisper models {whisper.available_models()}")
-    model = whisper.load_model("tiny.en", device="cuda")
-    #model = whisper.load_model("medium.en", device="cuda")
-    #model = whisper.load_model("turbo", device="cuda")
-    # model = whisper.load_model("large-v3-turbo", device="cuda")
+    model = whisper.load_model(transcribe_model, device="cuda")
     transcripts = []
     input_file = ""
     print("Transcribing ALL segments")
