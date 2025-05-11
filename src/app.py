@@ -1,5 +1,3 @@
-#from langchain_core.output_parsers import StrOutputParser
-#from langchain_core.runnables import RunnablePassthrough
 
 from DiarizeFiles import diarize_wav_file
 from segment_wave_files import segment_wave_files
@@ -8,7 +6,7 @@ from transcript_analysis import transcript_analysis
 import os
 
 import gradio as gr
-from constants import final_query_model, VECTOR_DB_PATH, initial_file_location
+from constants import final_query_model, VECTOR_DB_PATH, initial_file_location, import_example_files
 
 from langchain.schema import Document
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -62,8 +60,8 @@ def query_knowledge_base(user_question):
 
     # vs = load_vectorstore()
 
- #   embedding_model = OpenAIEmbeddings()
- #   llm = ChatOpenAI(model_name="gpt-4", temperature=0.2)
+    embedding_model = OpenAIEmbeddings()
+    llm = ChatOpenAI(model_name="gpt-4", temperature=0.2)
 
     # 2. Create or load a Chroma vector store
     persist_directory = "chroma_db"
@@ -169,8 +167,9 @@ def import_audio(file):
 # === Gradio UI ===
 with gr.Blocks() as demo:
     vector_db_initialized = False
-    for file in os.listdir(initial_file_location):
-        import_audio(initial_file_location + os.sep + file)
+    if import_example_files:
+        for file in os.listdir(initial_file_location):
+            import_audio(initial_file_location + os.sep + file)
 
     gr.Markdown("# 🎙️ Call Center Audio Processor")
 
