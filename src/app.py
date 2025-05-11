@@ -23,7 +23,30 @@ if final_query_model == "openai":
     llm = ChatOpenAI()
 else:
     embedding_model = model_name = "raaec/Meta-Llama-3.1-8B-Instruct-Summarizer"
-    llm = ChatOpenAI()
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    text_gen_pipeline = pipeline(
+        "text-generation",
+        model=model_name,
+        tokenizer=tokenizer,
+        torch_dtype=torch.bfloat16,
+        trust_remote_code=True,
+        device_map="auto",
+        # max_length=1000,
+        max_new_tokens=800,
+        eos_token_id=tokenizer.eos_token_id
+    )
+    llm = HuggingFacePipeline(
+        pipeline=text_gen_pipeline,
+        model_kwargs={
+            "temperature": 0.5,  # Lower = more focused and factual
+            "top_k": 50,  # Limits selection to top 50 tokens by probability
+            "top_p": 0.85,  # Cumulative probability sampling
+            "repetition_penalty": 1.2,  # Penalizes repeated phrases
+            "max_new_tokens": 300  # Ensures full, rich output
+        }
+    )
+
+
 
 def build_vectorstore(docs, path=VECTOR_DB_PATH):
     return Chroma.from_documents(collection_name="Call_Center_Data", documents=docs,

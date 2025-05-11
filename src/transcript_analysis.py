@@ -9,26 +9,33 @@ from langchain_openai import ChatOpenAI
 from transformers import pipeline
 from constants import model_name, llm_analysis_model
 
-template = """
+template_bullet = """
  You are a helpful assistant that summarizes conversations.
 
  Summarize the following dialog. Identify the key points and exchanges between speakers.
  Use bullet points to describe important statements or shifts in topic.
  Preserve who said what when it's important and identify the speakers by name. Also, give a sentiment analysis for the
- conversation as it progresses.  Finally, give a sentiment SCORE for the overall 
- conversation. label the sections as shown.
-
+ conversation as it progresses.
  ```{text}```
 
  BULLET POINT SUMMARY:
- 
+ """
+template_sentiment = """
+ You are a helpful assistant that does sentiment analysis.
+
+ identify the speakers by name. give a sentiment analysis for the
+ conversation as it progresses.  Finally, give a sentiment SCORE for the overall 
+ conversationon on a scale of -1 to 1, where -1 is extremely negative and 1 is extremely positive. label the sections as shown.
+
+ ```{text}```
+
  SENTIMENT ANALYSIS:
  
  SENTIMENT SCORE:
  """
 
 
-def use_openai(input):
+def use_openai(input, template):
     prompt = PromptTemplate(template=template, input_variables=["text"])
 
     llm = ChatOpenAI(
@@ -38,17 +45,13 @@ def use_openai(input):
         max_tokens=None,)
 
     chain = prompt | llm | StrOutputParser()
-    # client = OpenAI()
-    # response = client.responses.create(
-    #     model="o3-mini-2025-01-31",
-    #     # model="gpt-4.1",
-    #     input=template    )
-    # return response.output_text
+
     out = chain.invoke(input)
 
     print(out)
     return out
-def use_huggingface2(input):
+
+def use_huggingface2(input, template):
     # Define the model name
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -102,16 +105,19 @@ def transcript_analysis(transcript):
 
     start = time.time()
     if(llm_analysis_model == "openai"):
-        response = use_openai(input)
+        response1 = use_openai(input,template_bullet)
+        response2 = use_openai(input,template_sentiment)
     elif llm_analysis_model == "hugging_face":
-        response = use_huggingface2(input) 
+        response1 = use_huggingface2(input, template_bullet) 
+        response2 = use_huggingface2(input, template_sentiment) 
 
     stop = time.time()
     elapsed=stop-start
     print("transcript analysis consumed " + str(elapsed))
 
-    transcript = response[0:response.index("BULLET POINT SUMMARY:")]
-    summary = response[response.index("BULLET POINT SUMMARY:"): response.index("SENTIMENT ANALYSIS:")]
-    sentiment = response[response.index("SENTIMENT ANALYSIS:"):response.index("SENTIMENT SCORE:")]
-    sentiment_score  = response[response.index("SENTIMENT SCORE:"):]
+    transcript = response1[0:response1.index("BULLET POINT SUMMARY:")]
+    summary = response1[response1.index("BULLET POINT SUMMARY:"):]
+    sentiment = response2[response2.index("SENTIMENT ANALYSIS:"):response2.index("SENTIMENT SCORE:")]
+    sentiment_score  = response2[response2.index("SENTIMENT SCORE:"):]
+    
     return transcript, summary, sentiment, sentiment_score
