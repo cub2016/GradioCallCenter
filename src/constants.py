@@ -3,7 +3,7 @@ import os
 embeddings_model = final_query_model = "openai"
 llm_analysis_model = "openai"
 #llm_analysis_model = "hugging_face"
-transcribe_model = "large-v3-turbo" #'tiny.en', 'tiny', 'base.en', 
+transcribe_model = "tiny.en" #'tiny.en', 'tiny', 'base.en',
     # 'base', 'small.en', 'small', 'medium.en', 'medium', 'large-v1', 
     # 'large-v2', 'large-v3', 'large', 'large-v3-turbo', 'turbo'
 

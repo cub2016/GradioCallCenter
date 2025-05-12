@@ -1,6 +1,8 @@
+from pprint import pprint
+
 import torch
 from langchain_huggingface import HuggingFacePipeline
-from openai import OpenAI
+
 import time
 from transformers import TorchAoConfig, AutoModelForCausalLM, AutoTokenizer
 from langchain_core.prompts import PromptTemplate
@@ -50,9 +52,10 @@ def use_openai(input, template):
     prompt = PromptTemplate(template=template, input_variables=["text"])
 
     llm = ChatOpenAI(
-        # model="gpt-3.5-turbo-instruct",
+        # model="o3-2025-04-16",
         model="gpt-4.1",
-        temperature=0.5,
+        temperature=0.2,
+        top_p=.25,
         max_tokens=None,)
 
     chain = prompt | llm | StrOutputParser()
@@ -110,13 +113,18 @@ def transcript_analysis(transcript):
         response2 = use_openai(input,template_sentiment)
     elif llm_analysis_model == "hugging_face":
         response1 = use_huggingface2(input, template_bullet) 
-        response2 = use_huggingface2(input, template_sentiment) 
+        response2 = use_huggingface2(input, template_sentiment)
+    else:
+        raise Exception("An llm for transcript analysis must be chosen.")
 
     stop = time.time()
     elapsed=stop-start
     print("transcript analysis consumed " + str(elapsed))
 
-    transcript = response1[0:response1.index("BULLET POINT SUMMARY:")]
+    pprint(response1)
+    pprint(response2)
+
+    transcript = input
     summary = response1[response1.index("BULLET POINT SUMMARY:"):]
     sentiment = response2[response2.index("SENTIMENT ANALYSIS:"):response2.index("SENTIMENT SCORE:")]
     sentiment_score  = response2[response2.index("SENTIMENT SCORE:"):]
