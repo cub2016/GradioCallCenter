@@ -79,7 +79,7 @@ def query_knowledge_base(user_question):
         Question:
         {question}
     
-        Answer in a clear and concise manner.
+        Answer in a clear and concise manner. And include the source in the answer.
     """
     prompt = PromptTemplate.from_template(template)
 
@@ -96,7 +96,9 @@ def query_knowledge_base(user_question):
     # Check if a match was found and extract the file name
     if match:
         file_name = match.group(0)
-        file_name = file_name[file_name.rfind(os.sep):]
+        index = file_name.rfind(os.sep, 0)
+        if file_name.rfind(os.sep, 0) > 0:
+            doc_file = file_name[file_name.rfind(os.sep) + 1:]
     else:
         print("No file name found.")
         file_name=""
@@ -109,11 +111,11 @@ def query_knowledge_base(user_question):
     source_doc = ""
     if file_name != "":
         for doc in relevant_docs:
-            file = doc.metadata["source"]
-            match = re.search(pattern, doc.metadata["source"])
-            if match:
-                doc_file = match.group(0)
-                doc_file = doc_file[doc_file.rfind(os.sep):]
+            doc_file = doc.metadata["source"]
+            index = doc_file.rfind(os.sep, 0, len(doc_file))
+            index2 = os.sep
+            if doc_file.rfind(os.sep, 0, len(doc_file)) > 0:
+                doc_file = doc_file[doc_file.rfind(os.sep)+1:]
             else:
                 continue
             if doc_file == file_name:
@@ -124,7 +126,7 @@ def query_knowledge_base(user_question):
         transcript = source_doc.page_content
         summary = source_doc.metadata["summary"]
         sentiment_analysis = source_doc.metadata["sentiment"]
-        sentiment_score = source_doc.metadata["score3"]
+        sentiment_score = source_doc.metadata["score"]
 
     print("=== Answer ===")
     print(response.content)
@@ -165,7 +167,7 @@ with gr.Blocks() as demo:
 
     gr.Markdown("# 🎙️ Call Center Audio Processor")
 
-    with gr.Tab("🤖 Ask Questions"):
+    with gr.Tab("🤖 Ask Questions") as question:
         question_input = gr.Textbox(label="Ask a question uploaded ")
         answer_output = gr.Textbox(label="Answer")
         ask_btn = gr.Button("Ask")
@@ -176,12 +178,12 @@ with gr.Blocks() as demo:
             outputs=answer_output
         )
 
-    with gr.Tab("📥 Call Details"):
+    with gr.Tab("📥 Call Details") as details:
         trans_output = gr.Textbox(label="Transcript")
         summary_output = gr.Textbox(label="Summary")
         sentiment_output = gr.Textbox(label="Sentiment")
 
-    with gr.Tab("📥 Upload"):
+    with gr.Tab("📥 Upload") as upload:
         audio_input = gr.Audio(type="filepath", label="Upload WAV or MP3 file",
                                sources=["upload"])
         analyze_btn = gr.Button("Transcribe & Analyze")
