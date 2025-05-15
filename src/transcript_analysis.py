@@ -2,7 +2,7 @@ from pprint import pprint
 
 import torch
 from langchain_huggingface import HuggingFacePipeline
-
+import re
 import time
 from transformers import TorchAoConfig, AutoModelForCausalLM, AutoTokenizer
 from langchain_core.prompts import PromptTemplate
@@ -28,9 +28,10 @@ template_sentiment = """
  conversation as it progresses.  
  
  Also, in the "SENTIMENT SCORE" section below give a sentiment SCORE for the overall 
- conversationon on a scale of -1 to 1, where -1 is extremely negative and 1 is extremely positive. label the sections as shown.
-
- ```{text}```
+ conversation as a number on a scale of -1 to 1, where -1 is extremely negative and 1 
+ is extremely positive. Do not use punctuation for sentiment score. 
+ 
+ label the sections as shown below.
 
  SENTIMENT ANALYSIS:
  
@@ -44,7 +45,7 @@ template_sentiment = """
 
 
 
-
+ ```{text}```
  """
 
 
@@ -127,6 +128,8 @@ def transcript_analysis(transcript):
     transcript = input
     summary = response1[response1.index("BULLET POINT SUMMARY:"):]
     sentiment = response2[response2.index("SENTIMENT ANALYSIS:"):response2.index("SENTIMENT SCORE:")]
-    sentiment_score  = response2[response2.index("SENTIMENT SCORE:"):]
+    sentiment_score  = re.sub("[^0-9\.-]", "", response2[response2.index("SENTIMENT SCORE:"):])
+    if sentiment_score[len(sentiment_score)-1] == '.':
+        sentiment_score = sentiment_score[0: len(sentiment_score)-1]
     
     return transcript, summary, sentiment, sentiment_score

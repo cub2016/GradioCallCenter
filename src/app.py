@@ -1,23 +1,16 @@
-from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-
 from DiarizeFiles import diarize_wav_file
 from segment_wave_files import segment_wave_files
+from query_knowledge_base import query_knowledge_base
 from transcribe_files import transcribe_segments
 from transcript_analysis import transcript_analysis
 import os
-import re
-import gradio as gr
-from constants import final_query_model, VECTOR_DB_PATH, initial_file_location, import_example_files
 
-from langchain.schema import Document
+import gradio as gr
+from constants import final_query_model, initial_file_location, DB_PATH
+import sqlite3
+
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
-from langchain_chroma import Chroma
-from langchain.schema import HumanMessage
 
 if final_query_model == "openai":
     embedding_model = OpenAIEmbeddings()
@@ -47,91 +40,6 @@ else:
         }
     )
 
-def build_vectorstore(docs, path=VECTOR_DB_PATH):
-    return Chroma.from_documents(collection_name="Call_Center_Data", documents=docs,
-                                 embedding=embedding_model, persist_directory=path)
-
-def load_vectorstore(path=VECTOR_DB_PATH):
-    return Chroma(persist_directory=path, embedding_function=embedding_model)
-
-# === Query Interface ===
-def query_knowledge_base(user_question):
-    if not os.path.exists(VECTOR_DB_PATH):
-        return "No data in vector store. Please upload audio first."
-
-    vs = load_vectorstore()
-
-    retriever = vs.as_retriever() # search_kwargs={"k": 15}
-
-    relevant_docs = retriever.invoke(user_question)
-    context = "\n\n".join([doc.metadata["source"]+"   "+doc.page_content  for doc in relevant_docs])
-
-    for doc in relevant_docs:
-        print(doc.metadata["score"]+"   "+ doc.metadata["source"])
-
-    template = """
-        You are an assistant that answers questions based on the context provided.
-        If you don't know the answer, say you don't know. 
-        keep the answer concise. 
-        Context:
-        {context}
-    
-        Question:
-        {question}
-    
-        Answer in a clear and concise manner. And include the source in the answer.
-    """
-    prompt = PromptTemplate.from_template(template)
-
-    filled_prompt = prompt.format(context=context, question=user_question)
-
-    response = llm.invoke([HumanMessage(content=filled_prompt)])
-
-    # Regular expression pattern to match .wav or .mp3 file names
-    pattern = r'([a-zA-Z0-9_\\]+\.wav|[a-zA-Z0-9_\\]+\.mp3)'
-
-    # Search for the pattern in the input string
-    match = re.search(pattern, response.content)
-
-    # Check if a match was found and extract the file name
-    if match:
-        file_name = match.group(0)
-        index = file_name.rfind(os.sep, 0)
-        if file_name.rfind(os.sep, 0) > 0:
-            doc_file = file_name[file_name.rfind(os.sep) + 1:]
-    else:
-        print("No file name found.")
-        file_name=""
-
-    transcript = ""
-    sentiment_analysis = ""
-    summary = ""
-    sentiment_score = ""
-
-    source_doc = ""
-    if file_name != "":
-        for doc in relevant_docs:
-            doc_file = doc.metadata["source"]
-            index = doc_file.rfind(os.sep, 0, len(doc_file))
-            index2 = os.sep
-            if doc_file.rfind(os.sep, 0, len(doc_file)) > 0:
-                doc_file = doc_file[doc_file.rfind(os.sep)+1:]
-            else:
-                continue
-            if doc_file == file_name:
-                source_doc = doc
-                break
-
-    if source_doc != "":
-        transcript = source_doc.page_content
-        summary = source_doc.metadata["summary"]
-        sentiment_analysis = source_doc.metadata["sentiment"]
-        sentiment_score = source_doc.metadata["score"]
-
-    print("=== Answer ===")
-    print(response.content)
-    return response.content, transcript, summary, sentiment_analysis, sentiment_score, file_name
-
 def import_audio(file):
     speakers, tmp_file = diarize_wav_file(file)
     speakers = segment_wave_files(speakers, tmp_file)
@@ -140,50 +48,63 @@ def import_audio(file):
     # summary_output, sentiment_output = transcript_analysis(transcript)
     transcript, summary_output, sentiment_output, sentiment_score = transcript_analysis(transcript)
 
-    metadata = {
-        "source": file,
-        "summary": summary_output,
-        "sentiment": sentiment_output,
-        "score": sentiment_score
-    }
+    # Connect to (or create) the SQLite database
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
 
-    doc = Document(page_content=transcript, metadata=metadata)
+    # Create table if it doesn't exist
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS transcript_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transcript TEXT,
+        summary_output TEXT,
+        sentiment_output TEXT,
+        sentiment_score REAL,
+        file_name TEXT
+    )
+    """)
 
-    # Build or update vectorstore
-    if os.path.exists(VECTOR_DB_PATH):
-        vs = load_vectorstore()
-        vs.add_documents([doc])
-    else:
-        vs = build_vectorstore([doc])
+    # Insert the data into the table
+    cursor.execute("""
+    INSERT INTO transcript_data (transcript, summary_output, sentiment_output, sentiment_score, file_name)
+    VALUES (?, ?, ?, ?, ?)
+    """, (transcript, summary_output, sentiment_output, sentiment_score, file))
 
-    return transcript, summary_output, f"{metadata['sentiment']} (score: {metadata['score']})"
+    # Commit changes and close connection
+    conn.commit()
+    conn.close()
+
+    print("Data stored successfully in SQLite.")
+
+    return transcript, summary_output, f"{sentiment_output} (score: {sentiment_score})"
 
 # === Gradio UI ===
 with gr.Blocks() as demo:
-    vector_db_initialized = False
-    if import_example_files:
-        for file in os.listdir(initial_file_location):
-             import_audio(initial_file_location + file)
+    # vector_db_initialized = False
+    # if import_example_files:
+    #     for file in os.listdir(initial_file_location):
+    #          import_audio(initial_file_location + file)
 
     gr.Markdown("# 🎙️ Call Center Audio Processor")
 
     with gr.Tab("🤖 Ask Questions") as question:
         question_input = gr.Textbox(label="Ask a question uploaded ")
-        answer_output = gr.Textbox(label="Answer")
-        ask_btn = gr.Button("Ask")
+        answer_output = gr.Textbox(label="Answer", interactive=False)
+        ask_btn = gr.Button("Ask", interactive=True)
+        summary_output = gr.Textbox(label="Summary", interactive=False)
+        sentiment_output = gr.Textbox(label="Sentiment", interactive=False)
+        sentiment_score = gr.Number(label="Sentiment Score", interactive=False)
+        trans_output = gr.Textbox(label="Transcript", interactive=False)
+        file_name =  gr.Textbox(label="Audio File Name", interactive=False)
 
         ask_btn.click(
             fn=query_knowledge_base,
             inputs=question_input,
-            outputs=answer_output
+            outputs=[answer_output, trans_output, summary_output,
+                     sentiment_output, sentiment_score, file_name]
         )
 
-    with gr.Tab("📥 Call Details") as details:
-        trans_output = gr.Textbox(label="Transcript")
-        summary_output = gr.Textbox(label="Summary")
-        sentiment_output = gr.Textbox(label="Sentiment")
-
-    with gr.Tab("📥 Upload") as upload:
+    with gr.Tab("📥 Upload Audio File") as upload:
         audio_input = gr.Audio(type="filepath", label="Upload WAV or MP3 file",
                                sources=["upload"])
         analyze_btn = gr.Button("Transcribe & Analyze")
@@ -193,5 +114,23 @@ with gr.Blocks() as demo:
             inputs=audio_input,
             outputs=[trans_output, summary_output, sentiment_output]
         )
+        trans_output = gr.Textbox(label="Transcript", interactive=False)
+        summary_output = gr.Textbox(label="Summary", interactive=False)
+        sentiment_output = gr.Textbox(label="Sentiment", interactive=False)
+
+    with gr.Tab("🤖 Import Example Audio Files") as init_db:
+        import_btn = gr.Button("Begin Import Audio")
+
+        def import_example_audio():
+
+            for file in os.listdir(initial_file_location):
+                import_audio(initial_file_location + file)
+
+        import_btn.click(
+            fn=import_example_audio,
+            inputs=None,
+            outputs=None
+        )
+
 
 demo.launch()

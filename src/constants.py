@@ -13,5 +13,5 @@ model_name = "raaec/Meta-Llama-3.1-8B-Instruct-Summarizer"
 
 initial_file_location = os.path.join(".", "data") + os.sep
 segments_folder = ".segments"
-VECTOR_DB_PATH = "chromadb_index"
+DB_PATH = "transcripts.db"
 import_example_files = False
