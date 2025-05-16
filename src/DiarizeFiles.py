@@ -5,7 +5,6 @@ import os
 from pyannote.audio import Pipeline
 
 hugging_face = os.environ.get("HUGGING_FACE")
-print("hugging_face= "+hugging_face)
 
 # model_name = "pyannote/overlapped-speech-detection"
 

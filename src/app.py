@@ -122,7 +122,6 @@ with gr.Blocks() as demo:
         import_btn = gr.Button("Begin Import Audio")
 
         def import_example_audio():
-
             for file in os.listdir(initial_file_location):
                 import_audio(initial_file_location + file)
 
