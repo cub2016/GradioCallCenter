@@ -80,11 +80,7 @@ def import_audio(file):
 
 # === Gradio UI ===
 with gr.Blocks() as demo:
-    # vector_db_initialized = False
-    # if import_example_files:
-    #     for file in os.listdir(initial_file_location):
-    #          import_audio(initial_file_location + file)
-
+    state = gr.State([])
     gr.Markdown("# 🎙️ Call Center Audio Processor")
 
     with gr.Tab("🤖 Ask Questions") as question:
@@ -120,7 +116,7 @@ with gr.Blocks() as demo:
 
     with gr.Tab("🤖 Import Example Audio Files") as init_db:
         import_btn = gr.Button("Begin Import Audio")
-
+        status_box = gr.Textbox("Uploading Example Audio Files", visible=False)
         def import_example_audio():
             for file in os.listdir(initial_file_location):
                 import_audio(initial_file_location + file)
